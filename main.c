@@ -45,7 +45,7 @@ static void gpio_setup(void)
     /* Enable GPIOC clock. */
     rcc_periph_clock_enable(RCC_GPIOC);
 
-    /* Set GPIO12 (in GPIO port C) to 'output push-pull'. */
+    /* Set GPIO13 GPIO14  (in GPIO port C) to 'output push-pull'. */
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
                   GPIO_CNF_OUTPUT_PUSHPULL, GPIO14|GPIO13);
 
@@ -80,7 +80,7 @@ static void tim_setup(void)
     /* Continous mode. */
     timer_continuous_mode(TIM2);
 
-    /* Period (36kHz). */
+
     timer_set_period(TIM2, 65535);
 
     /* Disable outputs. */
@@ -140,7 +140,7 @@ static void tim_setup3(void)
     /* Continous mode. */
     timer_continuous_mode(TIM3);
 
-    /* Period (36kHz). */
+
     timer_set_period(TIM3, 65535);
 
     /* Disable outputs. */
@@ -182,8 +182,6 @@ static void systick_setup(void)
     systick_set_reload(8999);
 
     systick_interrupt_enable();
-
-    /* Start counting. */
     systick_counter_enable();
 }
 
@@ -210,7 +208,7 @@ void tim2_isr(void)
         new_time = compare_time + ticks_x;
         timer_set_oc_value(TIM2, TIM_OC1, new_time);
         counter_x+=dir_x;
-        /* Toggle LED to indicate compare event. */
+        //do step
         gpio_toggle(GPIOC, GPIO14);
     }
 }
@@ -235,7 +233,7 @@ void tim3_isr(void)
 
         timer_set_oc_value(TIM3, TIM_OC1, new_time3);
         counter_y+=dir_y;
-        /* Toggle LED to indicate compare event. */
+        /* do_step */
         gpio_toggle(GPIOC, GPIO13);
 
     }
@@ -336,6 +334,7 @@ int main(void)
     clock_setup();
     // rcc_clock_setup_in_hse_8mhz_out_72mhz();
     rcc_periph_clock_enable(RCC_GPIOB);
+    //activate USB autodetect by setting  GPIO9
     gpio_set(GPIOB, GPIO9);
 
     for ( i = 0; i < 0x10000; i++)
@@ -355,8 +354,8 @@ int main(void)
     while (1)
     {
 
-        if (rx_str_len) nexstar_poll();
-        if ((Sys_Ticks%100)==0) track();
+        if (rx_str_len) nexstar_poll();//procces nexstar commnad if any
+        if ((Sys_Ticks%100)==0) track();//track loop
 
     }
     return 0;
