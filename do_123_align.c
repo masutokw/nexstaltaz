@@ -11,7 +11,8 @@ char names[17][6]= {"A UMI","A TAU","B ORI","A AUR","A ORI","A CMA","A GEM","A C
                    };
 double pi = 3.141592653589793;
 double star_mat[17][2]=
-{    {37.960,  89.264}
+{
+    {37.960,  89.264}
     ,  {68.980,  16.509}
     ,  {78.634,  -8.202}
     ,  {79.172,  45.998}
@@ -31,38 +32,25 @@ double star_mat[17][2]=
 };
 double distance[17][17];
 double dt[3];
-double  haver_sine(double lonHome, double latHome, double lonDest, double latDest)
+
+
+double  delta_angle(double ang_h, double ang_v, double ang_h1, double ang_v1,int rad)
 {
+    if (!rad)
+    {
+        ang_v/=RAD_TO_DEG;
+        ang_h/=RAD_TO_DEG;
+        ang_v1/=RAD_TO_DEG;
+        ang_h1/=RAD_TO_DEG;
+    }
 
-    double pi = 3.141592653589793;
-    // int R = 6371; //Radius of the Earth
-
-    double differenceLon = (pi/180)*(lonDest - lonHome);
-    double differenceLat = (pi/180)*(latDest - latHome);
-    latHome = (pi/180)*(latHome);
-    latDest = (pi/180)*(latDest);
-    double a = sin(differenceLat/2) * sin(differenceLat/2) +
-               cos(latHome) * cos(latDest) *
-               sin(differenceLon/2) * sin(differenceLon/2);
+    double delta_h = (ang_h1 - ang_h);
+    double delta_v = (ang_v1  - ang_v);
+    double a = sin(delta_v/2) * sin(delta_v/2) +
+               cos(ang_v) * cos(ang_v1) *
+               sin(delta_h/2) * sin(delta_h/2);
     double c = 2 * atan2(sqrt(a), sqrt(1-a));
-    double distance = c*180.0/pi;
-    //printf("%f\n", distance);
-    return distance;
-}
-double  haver_sine_rad(double lonHome, double latHome, double lonDest, double latDest)
-{
-
-    double pi = 3.141592653589793;
-    // int R = 6371; //Radius of the Earth
-    //latHome = (pi/180)*(latHome);
-    //latDest = (pi/180)*(latDest);
-    double differenceLon = (lonDest - lonHome);
-    double differenceLat = (latDest - latHome);
-    double a = sin(differenceLat/2) * sin(differenceLat/2) +
-               cos(latHome) * cos(latDest) *
-               sin(differenceLon/2) * sin(differenceLon/2);
-    double c = 2 * atan2(sqrt(a), sqrt(1-a));
-    double distance = c*180.0/pi;
+    double distance = c*RAD_TO_DEG;
     //printf("%f\n", distance);
     return distance;
 }
@@ -73,7 +61,7 @@ void fill_table(void)
     for (i=0; i<17; i++)
     {
         for (j=0; j<16; j++)
-            distance[i][j]=haver_sine(star_mat[i][0],star_mat[i][1],star_mat[j][0],star_mat[j][1]);
+            distance[i][j]=delta_angle(star_mat[i][0],star_mat[i][1],star_mat[j][0],star_mat[j][1],0);
     }
 
 }
@@ -99,9 +87,9 @@ void foo_stars(int one,int two,int three)
     to_alt_az(&st1);
     to_alt_az(&st2);
     to_alt_az(&st3);
-    dt[0]=haver_sine_rad(st1.az,st1.alt,st2.az,st2.alt);
-    dt[1]=haver_sine_rad(st2.az,st2.alt,st3.az,st3.alt);
-    dt[2]=haver_sine_rad(st3.az,st3.alt,st1.az,st1.alt);
+    dt[0]=delta_angle(st1.az,st1.alt,st2.az,st2.alt,1);
+    dt[1]=delta_angle(st2.az,st2.alt,st3.az,st3.alt,1);
+    dt[2]=delta_angle(st3.az,st3.alt,st1.az,st1.alt,1);
 }
 
 int main()
@@ -132,7 +120,9 @@ int main()
         {
 
             for (j=0; j<i; j++)
-                {if (fabs(dt[k]-distance[i][j])<0.8)    printf(" (%s, %s) %+6.3f %f  ",names[i],names[j],distance[i][j],fabs(dt[k]-distance[i][j]));}
+            {
+                if (fabs(dt[k]-distance[i][j])<0.8)    printf(" (%s, %s) %+6.3f %f  ",names[i],names[j],distance[i][j],fabs(dt[k]-distance[i][j]));
+            }
 
         }
         printf("\r\n");;
