@@ -164,13 +164,8 @@ uint8_t usbd_control_buffer[128];
 usbd_device *usbd_dev;
 char rx_str[128];
 int rx_str_len;
-//static int cdcacm_control_request(usbd_device *usbd_dev, struct usb_setup_data *req, uint8_t **buf,
-//uint16_t *len, void (**complete)(usbd_device *usbd_dev, struct usb_setup_data *req));
-//static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep);
-//static void cdcacm_set_config(usbd_device *usbd_dev, uint16_t wValue);
-//void usb_wakeup_isr(void);
-//void usb_lp_can_rx0_isr(void);*/
 void cdcacm_init(void);
+void cdcacm_print_buff(char* str,int len);
 
 #endif
 

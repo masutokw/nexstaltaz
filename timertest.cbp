@@ -7,11 +7,12 @@
 		<Option compiler="arm-elf-gcc" />
 		<Build>
 			<Target title="Release">
-				<Option output="bin/Release/timertest" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/timertest.elf" prefix_auto="1" extension_auto="0" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="arm-elf-gcc" />
 				<Compiler>
+					<Add option="-fexpensive-optimizations" />
 					<Add option="-O2" />
 				</Compiler>
 				<Linker>
@@ -23,20 +24,20 @@
 			<Add option="-mcpu=cortex-m3" />
 			<Add option="-msoft-float" />
 			<Add option="-O3" />
-			<Add option="-Wall" />
 			<Add option="-std=c99" />
-			<Add option="-fno-common -mthumb" />
+			<Add option="-fcommon -mthumb" />
 			<Add option="-MD" />
+			<Add option="-ffunction-sections -fdata-sections" />
 			<Add option="-DSTM32F1" />
 			<Add directory="E:/stm32/libopencm3-master/include" />
 		</Compiler>
 		<Linker>
-			<Add option="-s" />
 			<Add option="-Wl,--start-group -lc -lm  -lnosys -Wl,--end-group" />
 			<Add option="-LE:/stm32/libopencm3-master/lib" />
 			<Add option="-lopencm3_stm32f1 --static" />
 			<Add option="-Tstm32-maple.ld -nostartfiles" />
 			<Add option="-Wl,--gc-sections -mthumb -mcpu=cortex-m3 -msoft-float -mfix-cortex-m3-ldrd" />
+			<Add option="-Wl,-Map,map.txt" />
 		</Linker>
 		<ExtraCommands>
 			<Add after="arm-none-eabi-size $(TARGET_OUTPUT_FILE)" />
@@ -46,6 +47,7 @@
 		</ExtraCommands>
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
+			<Option weight="100" />
 		</Unit>
 		<Unit filename="motor.c">
 			<Option compilerVar="CC" />

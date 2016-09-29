@@ -3,12 +3,16 @@
 #include <string.h>
 #include <stdio.h>
 #include "taki.h"
+#include "nexstar.h"
+//#include "motor.h"
 #ifndef M_PI
 #define M_PI 3.14159265359
 //#define M_PI acos(-1.0)
 #endif
 #define ADD_DIGIT(var,digit)  if  (digit>'9') var=(var<<4)+digit-'7'; else var=(var<<4) +digit-'0';
 #define RAD_TO_CEL_P (16777216/(2.0*M_PI))
+#define RAD_TO_CEL (65536/(2.0*M_PI))
+double rad_to_cel;
 char stcmd;
 long deg=0;
 long *px ,*py;
@@ -30,8 +34,8 @@ long var;
 char trackmode=1;
 char alt_axis,neg;
 int cs;
-char response[40];
-int resp_size;
+//char response[40];
+//int resp_size;
 char A=36;
 char B=12;
 char C=4;
@@ -40,9 +44,10 @@ char E=4;
 char F=12;
 char G=0;
 char H=1;
-extern c_star st_target,st_next,st_current;
-extern int tracedata;
-
+//extern c_star st_target,st_next,st_current;
+//extern int tracedata;
+/*extern double res_x,res_y;
+extern long counter_x,counter_y;*/
 
 /* #line 2 "nexstar.c" */
 static const char _command_actions[] = {
@@ -203,12 +208,12 @@ static const int command_error = 0;
 static const int command_en_main = 1;
 
 
-/* #line 47 "nexstar.rl" */
+/* #line 52 "nexstar.rl" */
 
 
 
 
-/* #line 220 "nexstar.rl" */
+/* #line 233 "nexstar.rl" */
 
 
 void nexstar_init(void)
@@ -219,11 +224,12 @@ void nexstar_init(void)
 	cs = command_start;
 	}
 
-/* #line 225 "nexstar.rl" */
+/* #line 238 "nexstar.rl" */
 }
 void nexstar_cmd( char *str,int len )
-{x=y=0;
-    resp_size=0;
+{
+    x=y=0;
+    resp_size=0;rad_to_cel=RAD_TO_CEL;
     char *p = str, *pe = str + len;
     char *eof=pe;
     
@@ -301,37 +307,40 @@ _match:
 		switch ( *_acts++ )
 		{
 	case 0:
-/* #line 52 "nexstar.rl" */
+/* #line 57 "nexstar.rl" */
 	{ ADD_DIGIT(x,(*p));}
 	break;
 	case 1:
-/* #line 53 "nexstar.rl" */
+/* #line 58 "nexstar.rl" */
 	{ADD_DIGIT(y,(*p));}
 	break;
 	case 2:
-/* #line 57 "nexstar.rl" */
+/* #line 62 "nexstar.rl" */
 	{
-       if (prec) {
-       ra=st_current.ra*RAD_TO_CEL_P;
-        if (st_current.dec>=0.0) dec=st_current.dec*RAD_TO_CEL_P;
-       else dec= ((2.0*M_PI) +st_current.dec)*RAD_TO_CEL_P;
-       sprintf(response,"%06lx00,%06lx00#",ra,dec);}
-        else sprintf(response,"%04lx,%04lx#",ra,dec);
+        ra=st_current.ra*rad_to_cel;
+        if (st_current.dec>=0.0) dec=st_current.dec*rad_to_cel;
+        else dec= ((2.0*M_PI) +st_current.dec)*rad_to_cel;
+        if (prec)
+            sprintf(response,"%06lx00,%06lx00#",ra,dec);
+
+        else {
+            sprintf(response,"%04lx,%04lx#",ra,dec);
+        }
         prec=0;
     }
 	break;
 	case 3:
-/* #line 67 "nexstar.rl" */
+/* #line 75 "nexstar.rl" */
 	{
         if (prec)
-            sprintf(response,"%08lx,%08lx#",alt,az);
+            sprintf(response,"%08lx,%08lx#",az,alt);
         else
-            sprintf(response,"%04lx,%04lx#",alt,az);
+            sprintf(response,"%04lx,%04lx#",az,alt);
         prec=0;
     }
 	break;
 	case 4:
-/* #line 74 "nexstar.rl" */
+/* #line 82 "nexstar.rl" */
 	{
         px=&ra;
         py=&dec;
@@ -339,14 +348,14 @@ _match:
     }
 	break;
 	case 5:
-/* #line 79 "nexstar.rl" */
+/* #line 87 "nexstar.rl" */
 	{
         px=&alt;
         py=&az;
     }
 	break;
 	case 6:
-/* #line 83 "nexstar.rl" */
+/* #line 91 "nexstar.rl" */
 	{
         px=&ra;
         py=&dec;
@@ -354,14 +363,14 @@ _match:
     }
 	break;
 	case 7:
-/* #line 89 "nexstar.rl" */
+/* #line 97 "nexstar.rl" */
 	{
         sprintf(response,"%c#",trackmode);
 
     }
 	break;
 	case 8:
-/* #line 94 "nexstar.rl" */
+/* #line 102 "nexstar.rl" */
 	{
         trackmode=(*p);
         sprintf(response,"#");
@@ -369,99 +378,109 @@ _match:
     }
 	break;
 	case 9:
-/* #line 100 "nexstar.rl" */
-	{prec=1;}
+/* #line 108 "nexstar.rl" */
+	{prec=1;rad_to_cel=RAD_TO_CEL_P;}
 	break;
 	case 10:
-/* #line 102 "nexstar.rl" */
+/* #line 110 "nexstar.rl" */
 	{vrate+=(*p)*256;}
 	break;
 	case 11:
-/* #line 104 "nexstar.rl" */
+/* #line 112 "nexstar.rl" */
 	{vrate+=(*p);}
 	break;
 	case 12:
-/* #line 106 "nexstar.rl" */
+/* #line 114 "nexstar.rl" */
 	{frate=(*p);}
 	break;
 	case 13:
-/* #line 108 "nexstar.rl" */
+/* #line 116 "nexstar.rl" */
 	{inv_dir=1;}
 	break;
 	case 14:
-/* #line 109 "nexstar.rl" */
+/* #line 117 "nexstar.rl" */
 	{alt_axis=1;}
 	break;
 	case 15:
-/* #line 110 "nexstar.rl" */
+/* #line 118 "nexstar.rl" */
 	{sprintf(response,"#");
     //printf("[set_fixed_rate]");
     }
 	break;
 	case 16:
-/* #line 113 "nexstar.rl" */
+/* #line 121 "nexstar.rl" */
 	{sprintf(response,"#");
 
     }
 	break;
 	case 17:
-/* #line 118 "nexstar.rl" */
+/* #line 126 "nexstar.rl" */
 	{
         sprintf(response,"%c%c#",4,10);
         //printf("get_version\r\n");
     }
 	break;
 	case 18:
-/* #line 123 "nexstar.rl" */
+/* #line 131 "nexstar.rl" */
 	{
         sprintf(response,"%c#",1);
         //printf("getmodel\r\n");
     }
 	break;
 	case 19:
-/* #line 129 "nexstar.rl" */
+/* #line 137 "nexstar.rl" */
 	{
         sprintf(response,"%c#",1);
       //  printf("is_aligned");
     }
 	break;
 	case 20:
-/* #line 134 "nexstar.rl" */
+/* #line 142 "nexstar.rl" */
 	{sprintf(response,"is_slewing\r\n");}
 	break;
 	case 21:
-/* #line 137 "nexstar.rl" */
+/* #line 145 "nexstar.rl" */
 	{
         sprintf(response,"#");
         //printf("Cancel_goto\r\n");
     }
 	break;
 	case 22:
-/* #line 142 "nexstar.rl" */
+/* #line 150 "nexstar.rl" */
 	{sprintf(response,"%c%c#",0,0);resp_size=3;}
 	break;
 	case 24:
-/* #line 144 "nexstar.rl" */
+/* #line 152 "nexstar.rl" */
 	{sprintf(response,"%c#",(*p));}
 	break;
 	case 25:
-/* #line 146 "nexstar.rl" */
-	{*px=x;*py=y; sprintf(response,"#");
-
-    st_target.ra=(ra)/RAD_TO_CEL_P;st_target.dec=(dec)/RAD_TO_CEL_P;
-    st_next.ra=st_target.ra;st_next.dec=st_target.dec;
-
+/* #line 155 "nexstar.rl" */
+	{
+        *px=x;
+        *py=y;
+        sprintf(response,"#");
+        st_target.ra=(ra)/rad_to_cel;
+        st_target.dec=(dec)/rad_to_cel;
+        st_next.ra=st_target.ra;
+        st_next.dec=st_target.dec;
+        if (sync_cmd)
+        {
+            to_alt_az(&st_target);
+            counter_x=st_target.az*RAD_TO_ARCS/res_x;
+            counter_y=st_target.alt*RAD_TO_ARCS/res_y;
+            sync_cmd=0;
+        }
     }
 	break;
 	case 26:
-/* #line 152 "nexstar.rl" */
+/* #line 171 "nexstar.rl" */
 	{sprintf(response,"%c%c%c%c%c%c%c%c#",A,B,C,D,E,F,G,H);resp_size=9;}
 	break;
 	case 27:
-/* #line 153 "nexstar.rl" */
+/* #line 172 "nexstar.rl" */
 	{tracedata=!tracedata;}
 	break;
-/* #line 368 "nexstar.c" */
+/* #line 381 "nexstar.c" */
 		}
 	}
 
@@ -478,10 +497,10 @@ _again:
 	while ( __nacts-- > 0 ) {
 		switch ( *__acts++ ) {
 	case 23:
-/* #line 143 "nexstar.rl" */
+/* #line 151 "nexstar.rl" */
 	{if (resp_size==0) resp_size=strlen(response) ;}
 	break;
-/* #line 386 "nexstar.c" */
+/* #line 399 "nexstar.c" */
 		}
 	}
 	}
@@ -489,7 +508,7 @@ _again:
 	_out: {}
 	}
 
-/* #line 232 "nexstar.rl" */
+/* #line 246 "nexstar.rl" */
 
 };
 

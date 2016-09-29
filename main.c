@@ -1,8 +1,3 @@
-
-/*
-
- */
-
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
@@ -12,19 +7,23 @@
 #include <libopencm3/cm3/scb.h>
 #include "taki.h"
 #include "motor.h"
+#include "nexstar.h"
+#include "usb_cdc.h"
 
-extern char rx_str[128];
+/*extern char rx_str[128];
 extern int rx_str_len;
 extern char response[40];
-extern int resp_size;
-extern void nexstar_cmd();
-extern void nexstar_init();
-extern void cdcacm_init();
-extern void cdcacm_print_buff();
-extern unsigned int ticks_x,ticks_y;
+extern int resp_size;*/
+//extern void nexstar_cmd();
+//extern void nexstar_init();
+//extern void cdcacm_init();
+//extern void cdcacm_print_buff();
+//extern void speed_x_a(float target_speed);
+//extern void speed_y_a(float target_speed);
+/*extern unsigned int ticks_x,ticks_y;
 extern long counter_x,counter_y;
-extern float res_x,res_y;
-extern int dir_x,dir_y;
+extern double res_x,res_y,speed_x;
+extern int dir_x,dir_y;*/
 int sync_cmd=0;
 uint16_t compare_time,compare_time3;
 uint16_t new_time,new_time3;
@@ -275,20 +274,9 @@ void track(void)
     st_target.timer_count=st_current.timer_count=( Sys_Ticks/1000.0);
     //compute correct actual alt-az mount values
     to_alt_az(&st_target);
-    //if received sync command from parser set current counter values  to new position
-    if (sync_cmd)
-    {
-        counter_x=st_target.az*RAD_TO_ARCS/res_x;
-        counter_y=st_target.alt*RAD_TO_ARCS/res_y;
-        sync_cmd=0;
-    }
     //translate counter values to current postition alt/az values
     st_current.az=(res_x*counter_x)/RAD_TO_ARCS;
     st_current.alt=(res_y*counter_y)/RAD_TO_ARCS;
-
-
-    // st_r.az=st_target.az;
-    // st_r.alt=st_target.alt;
     //compute ecuatorial current equatorial values to be send out from NEXSTAR protocol interface
     to_equatorial(&st_current);
     //compute next alt/az mount values  for target next lap second
@@ -312,12 +300,15 @@ void track(void)
         printf("Delta %+4.2f %+4.2f \r\n",temp*3600.0-res_x*counter_x, temp1*3600.0-res_y*counter_y );
         printf("Freq %2.4f %2.4f\r\n",d_az/res_x,d_alt/res_y);
         //to_equatorial(&st_r);
-        printf("Freq %2.4f %2.4f\r\n",d_az/res_x,d_alt/res_y);
+       //
+        printf("Freq %2.4f %2.4f %f\r\n",d_az_r/res_x,d_alt_r/res_y,speed_x);
     };
 
     // Computes and timer intervals for stepper  rates
-    speedy(d_alt_r);
-    speedx(d_az_r);
+   // speedy(d_alt_r);
+  //  speedx(d_az_r);
+    speed_x_a(d_az_r);
+    speed_y_a(d_alt_r);
 
 }
 
@@ -346,15 +337,13 @@ int main(void)
     tim_setup();
     tim_setup3();
     takset();
-    motor_init(0,0,0.3,0.3);
+    motor_init(0,0,0.3,0.3,1000.0,1000.0);
     st_target.timer_count=( Sys_Ticks/1000.0);
     to_alt_az(&st_target);
     counter_x=st_target.az*RAD_TO_ARCS/res_x;
     counter_y=st_target.alt*180.0*3600.0/(M_PI*res_y);
     while (1)
-    {
-
-        if (rx_str_len) nexstar_poll();//procces nexstar commnad if any
+    {   if (rx_str_len) nexstar_poll();//procces nexstar commnad if any
         if ((Sys_Ticks%100)==0) track();//track loop
 
     }

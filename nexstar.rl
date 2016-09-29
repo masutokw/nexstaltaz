@@ -1,12 +1,16 @@
 #include <string.h>
 #include <stdio.h>
 #include "taki.h"
+#include "nexstar.h"
+//#include "motor.h"
 #ifndef M_PI
 #define M_PI 3.14159265359
 //#define M_PI acos(-1.0)
 #endif
 #define ADD_DIGIT(var,digit)  if  (digit>'9') var=(var<<4)+digit-'7'; else var=(var<<4) +digit-'0';
 #define RAD_TO_CEL_P (16777216/(2.0*M_PI))
+#define RAD_TO_CEL (65536/(2.0*M_PI))
+double rad_to_cel;
 char stcmd;
 long deg=0;
 long *px ,*py;
@@ -28,8 +32,8 @@ long var;
 char trackmode=1;
 char alt_axis,neg;
 int cs;
-char response[40];
-int resp_size;
+//char response[40];
+//int resp_size;
 char A=36;
 char B=12;
 char C=4;
@@ -38,9 +42,10 @@ char E=4;
 char F=12;
 char G=0;
 char H=1;
-extern c_star st_target,st_next,st_current;
-extern int tracedata;
-
+//extern c_star st_target,st_next,st_current;
+//extern int tracedata;
+/*extern double res_x,res_y;
+extern long counter_x,counter_y;*/
 %%{
 	machine command;
 	write data;
@@ -55,20 +60,23 @@ extern int tracedata;
 
     action return_eq
     {
-       if (prec) {
-       ra=st_current.ra*RAD_TO_CEL_P;
-        if (st_current.dec>=0.0) dec=st_current.dec*RAD_TO_CEL_P;
-       else dec= ((2.0*M_PI) +st_current.dec)*RAD_TO_CEL_P;
-       sprintf(response,"%06lx00,%06lx00#",ra,dec);}
-        else sprintf(response,"%04lx,%04lx#",ra,dec);
+        ra=st_current.ra*rad_to_cel;
+        if (st_current.dec>=0.0) dec=st_current.dec*rad_to_cel;
+        else dec= ((2.0*M_PI) +st_current.dec)*rad_to_cel;
+        if (prec)
+            sprintf(response,"%06lx00,%06lx00#",ra,dec);
+
+        else {
+            sprintf(response,"%04lx,%04lx#",ra,dec);
+        }
         prec=0;
     }
 
     action return_altaz {
         if (prec)
-            sprintf(response,"%08lx,%08lx#",alt,az);
+            sprintf(response,"%08lx,%08lx#",az,alt);
         else
-            sprintf(response,"%04lx,%04lx#",alt,az);
+            sprintf(response,"%04lx,%04lx#",az,alt);
         prec=0;
     }
     action goto_eq {
@@ -97,7 +105,7 @@ extern int tracedata;
 
     }
 
-    action precise {prec=1;}
+    action precise {prec=1;rad_to_cel=RAD_TO_CEL_P;}
     #action getcoord {sprintf(response,"set_fixed_rate\r\n");}f
     action rate_high_byte {vrate+=fc*256;}
 
@@ -143,11 +151,22 @@ extern int tracedata;
     action execute{if (resp_size==0) resp_size=strlen(response) ;}
     action echo  {sprintf(response,"%c#",fc);}
 	action connected  {sprintf(response,"#");}
-    action save {*px=x;*py=y; sprintf(response,"#");
-
-    st_target.ra=(ra)/RAD_TO_CEL_P;st_target.dec=(dec)/RAD_TO_CEL_P;
-    st_next.ra=st_target.ra;st_next.dec=st_target.dec;
-
+    action save
+    {
+        *px=x;
+        *py=y;
+        sprintf(response,"#");
+        st_target.ra=(ra)/rad_to_cel;
+        st_target.dec=(dec)/rad_to_cel;
+        st_next.ra=st_target.ra;
+        st_next.dec=st_target.dec;
+        if (sync_cmd)
+        {
+            to_alt_az(&st_target);
+            counter_x=st_target.az*RAD_TO_ARCS/res_x;
+            counter_y=st_target.alt*RAD_TO_ARCS/res_y;
+            sync_cmd=0;
+        }
     }
 	action getcoord {sprintf(response,"%c%c%c%c%c%c%c%c#",A,B,C,D,E,F,G,H);resp_size=9;}
     action traceport {tracedata=!tracedata;}
@@ -157,9 +176,7 @@ extern int tracedata;
 #Syntax
 
     Coords=((Xdigit @getx){4} ',' (Xdigit @gety){4})@save ;
-#| ((Xdigit @getx) {8} ',' (Xdigit @gety){8});
     Coords_p=((Xdigit @getx){6}Xdigit{2} ',' (Xdigit @gety){6}Xdigit{2})@save ;
-#	Coords=(Xdigit @getx)+ ',' (Xdigit @gety)+;
 # GET position commands
     Eq = ('E' | '?E'	|'e' @precise) @return_eq;
     Altaz=('Z' | 'z' @precise) @return_altaz;
@@ -169,15 +186,11 @@ extern int tracedata;
 
 
 #GOTO commands
-#GotoEq = 	(('R'|('r' @precise) )@goto_eq )Coords ;
-#GotoAltaz = (('B'Coords)|('b' @precise  Coords)) %goto_altaz;
-#Goto   = (GotoEq |GotoAltaz);
-#Goto_Sync=((('R'|('r' @precise) )@goto_eq ) | (('B'|('b' @precise) )@goto_altaz ) |  (('S'|('s' @precise) )@sync ) ) Coords ;
+
     Goto_Sync_pre=(('r' @goto_eq ) | ('b'  @goto_altaz ) |  ('s' @sync ) ) @precise Coords_p  ;
     Goto_Sync_s=(('R' @goto_eq ) | ('B' @goto_altaz ) |  ('S' @sync ) ) Coords ;
     Goto_Sync =Goto_Sync_pre |Goto_Sync_s;
-#SYNC commands
-#Sync   = (	'S'Coords  | ()'s'Coords_p @precise) %sync;
+
 
 #TRACKING commands
     GetTrack = 't' @return_track_mode;
@@ -224,8 +237,9 @@ void nexstar_init(void)
     %%write init;
 }
 void nexstar_cmd( char *str,int len )
-{x=y=0;
-    resp_size=0;
+{
+    x=y=0;
+    resp_size=0;rad_to_cel=RAD_TO_CEL;
     char *p = str, *pe = str + len;
     char *eof=pe;
     %%write exec;
