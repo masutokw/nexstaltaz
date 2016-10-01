@@ -4,8 +4,7 @@
 #include "nexstar.h"
 //#include "motor.h"
 #ifndef M_PI
-#define M_PI 3.14159265359
-//#define M_PI acos(-1.0)
+#define M_PI acos(-1.0)
 #endif
 #define ADD_DIGIT(var,digit)  if  (digit>'9') var=(var<<4)+digit-'7'; else var=(var<<4) +digit-'0';
 #define RAD_TO_CEL_P (16777216/(2.0*M_PI))
@@ -21,7 +20,7 @@ long dec=1000;
 long alt=0;
 long az=0;
 int prec=0;
-extern int sync_cmd;
+int sync_cmd;
 int inv_dir=0;
 long vrate=0;
 long rate=0;
@@ -32,8 +31,6 @@ long var;
 char trackmode=1;
 char alt_axis,neg;
 int cs;
-//char response[40];
-//int resp_size;
 char A=36;
 char B=12;
 char C=4;
@@ -42,8 +39,7 @@ char E=4;
 char F=12;
 char G=0;
 char H=1;
-//extern c_star st_target,st_next,st_current;
-//extern int tracedata;
+extern int tracedata;
 /*extern double res_x,res_y;
 extern long counter_x,counter_y;*/
 %%{
@@ -61,22 +57,24 @@ extern long counter_x,counter_y;*/
     action return_eq
     {
         ra=st_current.ra*rad_to_cel;
-        if (st_current.dec>=0.0) dec=st_current.dec*rad_to_cel;
-        else dec= ((2.0*M_PI) +st_current.dec)*rad_to_cel;
+        dec=st_current.dec*rad_to_cel;
+        if (st_current.dec<0.0) dec+=(2*M_PI)*rad_to_cel;
         if (prec)
-            sprintf(response,"%06lx00,%06lx00#",ra,dec);
+            sprintf(response,"%06lX00,%06lX00#",ra,dec);
 
         else {
-            sprintf(response,"%04lx,%04lx#",ra,dec);
+            sprintf(response,"%04lX,%04lX#",ra,dec);
         }
         prec=0;
     }
 
     action return_altaz {
+        az=st_current.az*rad_to_cel;
+        alt=st_current.alt*rad_to_cel;
         if (prec)
-            sprintf(response,"%08lx,%08lx#",az,alt);
+            sprintf(response,"%06lX00,%06lX00#",az,alt);
         else
-            sprintf(response,"%04lx,%04lx#",az,alt);
+            sprintf(response,"%04lX,%04lX#",az,alt);
         prec=0;
     }
     action goto_eq {
@@ -170,7 +168,8 @@ extern long counter_x,counter_y;*/
     }
 	action getcoord {sprintf(response,"%c%c%c%c%c%c%c%c#",A,B,C,D,E,F,G,H);resp_size=9;}
     action traceport {tracedata=!tracedata;}
-
+    action SETTIME { SetTime(116,10,2,15,33,0);}
+    action gettime {ClockShow();}
 #definicion sintaxis Nextstar
     Xdigit=[0-9A-F];
 #Syntax
@@ -207,7 +206,7 @@ extern long counter_x,counter_y;*/
 #TIME / LOCATION commands
     Get_Loc='w'@getcoord;
     Set_Loc='W' (0..90) (0..59)(0..59)(0..1)(extend) (0..59)(0..59)(0..1);
-    Get_Time='h';
+    Get_Time='h'@gettime;
     Set_Time='H' (0..23)(0..59)(0..59)(1..12)(1..31)(extend)(extend)(0..1);
     Loc=Get_Loc | Set_Loc | Get_Time | Set_Time;
 
@@ -226,7 +225,8 @@ extern long counter_x,counter_y;*/
     Get_dev_version='P' 0x02 (dev) (0xFE) (0x0{3}) 0x02 @get_dev_version;
     Misc=Get_version | Get_model | Get_dev_version | echo |align_completed | goto_progress |cancel_goto ;
     Trace='G'@traceport;
-	main :=  (( Goto_Sync | Get | Track | Slew | Loc  | Misc|Trace)%execute) ;
+    Time= 'X'@SETTIME;
+	main :=  (( Goto_Sync | Get | Track | Slew | Loc  | Misc|Trace|Time)%execute) ;
 
 
 

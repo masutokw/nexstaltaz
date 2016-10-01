@@ -8,4 +8,5 @@ int resp_size;
 void nexstar_init();
 void nexstar_cmd( char *str,int len );
 void checkfsm(void);
+void nexstar_poll(void);
 #endif
