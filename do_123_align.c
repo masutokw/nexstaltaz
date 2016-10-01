@@ -1,3 +1,4 @@
+//automatic star finder routines
 #include <stdio.h>
 #include <stdlib.h>
 #include "taki.h"
@@ -32,7 +33,6 @@ double star_mat[17][2]=
 };
 double distance[17][17];
 double dt[3];
-
 
 double  delta_angle(double ang_h, double ang_v, double ang_h1, double ang_v1,int rad)
 {
