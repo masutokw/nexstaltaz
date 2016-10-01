@@ -3,8 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #ifndef M_PI
-#define M_PI 3.14159265359
-//#define M_PI acos(-1.0)
+#define M_PI acos(-1.0)
 #endif
 #define RAD_TO_DEG (180.0/M_PI)//  57.2958
 #define SOLAR_DS (3600.0*24.0)
