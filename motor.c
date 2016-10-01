@@ -1,5 +1,6 @@
 #include "motor.h"
 #include <math.h>
+#define TOP_SPD 15000
 #define sign(a) ( ( (a) < 0 )  ?  -1   : ( (a) > 0 ) )
 //double speed_x,speed_y,res_x,res_y,current_speedx,accel_x,accel_y;
 void motor_init(long x,long y,double rx,double ry,double ax,double ay )
@@ -28,7 +29,7 @@ void speedy(float speed)
 }
 void speed_x_a(float target_speed)
 {
-    if (fabs(speed_x)>8000) target_speed=8000*sign(speed_x);
+    if (fabs(speed_x)>TOP_SPD) target_speed=TOP_SPD*sign(speed_x);
     if (target_speed==speed_x) return;
 
     //speed_x=target_speed;
@@ -55,7 +56,7 @@ void speed_x_a(float target_speed)
 void speed_y_a(float target_speed)
 {
     if (target_speed==speed_y) return;
-    if (fabs(speed_y)>8000) target_speed=8000*sign(speed_y);
+    if (fabs(speed_y)>TOP_SPD) target_speed=TOP_SPD0*sign(speed_y);
     //speed_y=target_speed;
     if (speed_y<target_speed)
     {
