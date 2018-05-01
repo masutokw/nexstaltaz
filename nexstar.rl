@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include "taki.h"
 #include "nexstar.h"
-//#include "motor.h"
+#include <time.h>
+
 #ifndef M_PI
 #define M_PI acos(-1.0)
 #endif
@@ -24,7 +25,9 @@ int sync_cmd;
 int inv_dir=0;
 long vrate=0;
 long rate=0;
-long frate=10;
+long frate=0;
+double alt_frate=0;
+double az_frate=0;
 long axe=0;
 char digit;
 long var;
@@ -32,13 +35,14 @@ char trackmode=1;
 char alt_axis,neg;
 int cs;
 char A=36;
-char B=12;
+char B=8;
 char C=4;
 char D=0;
 char E=4;
 char F=12;
 char G=0;
 char H=1;
+char hour,min,sec,year,month,day,tzone,dst;
 extern int tracedata;
 /*extern double res_x,res_y;
 extern long counter_x,counter_y;*/
@@ -94,12 +98,17 @@ extern long counter_x,counter_y;*/
 
     action return_track_mode {
         sprintf(response,"%c#",trackmode);
+         resp_size=2;
 
     }
 
     action set_track_mode{
         trackmode=fc;
+        if (trackmode)
+          {st_target.ra=st_current.ra;
+          st_target.dec=st_current.dec;}
         sprintf(response,"#");
+
 
     }
 
@@ -111,41 +120,53 @@ extern long counter_x,counter_y;*/
 
     action fixed_rate {frate=fc;}
 
-    action inv {inv_dir=1;}
-    action alt_axis {alt_axis=1;}
-    action set_frate {sprintf(response,"#");
+    action inv {inv_dir=1; if ((fc==7)||(fc==37)) inv_dir=-1;}
+    action alt_axis {alt_axis=(fc==17);}
+    action set_frate {
+        if (alt_axis) alt_frate=frate*frate*200.0*inv_dir ;else az_frate=frate*frate*200.0*-(inv_dir);
+         trackmode=0;
+       sprintf(response,"#");
+
+
     //printf("[set_fixed_rate]");
     }
     action set_vrate{sprintf(response,"#");
+     if (alt_axis) alt_frate=vrate*inv_dir ;else az_frate=vrate*-(inv_dir);
+    sprintf(response,"#");
 
     }
 
     action get_version
     {
         sprintf(response,"%c%c#",4,10);
-        //printf("get_version\r\n");
+
     }
 
     action get_model {
         sprintf(response,"%c#",1);
-        //printf("getmodel\r\n");
+         resp_size=2;
+
     }
 
     action is_aligned
     {
-        sprintf(response,"%c#",1);
-      //  printf("is_aligned");
+        sprintf(response,"%c#",is_aligned);
+        resp_size=2;
+
     }
 
-    action is_slewing {sprintf(response,"is_slewing\r\n");}
+    action is_slewing {
+        sprintf(response,"%c#",is_slewing);
+        resp_size=2;
+    }
 
     action set_cancel
     {
         sprintf(response,"#");
-        //printf("Cancel_goto\r\n");
+
     }
 
-    action get_dev_version{sprintf(response,"%c%c#",0,0);resp_size=3;}
+    action get_dev_version{sprintf(response,"%c%c#",4,1);resp_size=3;}
     action execute{if (resp_size==0) resp_size=strlen(response) ;}
     action echo  {sprintf(response,"%c#",fc);}
 	action connected  {sprintf(response,"#");}
@@ -166,10 +187,47 @@ extern long counter_x,counter_y;*/
             sync_cmd=0;
         }
     }
-	action getcoord {sprintf(response,"%c%c%c%c%c%c%c%c#",A,B,C,D,E,F,G,H);resp_size=9;}
+    action A {A=fc;}
+    action B {B=fc;}
+    action C {C=fc;}
+    action D {D=fc;}
+    action E {E=fc;}
+    action F {F=fc;}
+    action G {G=fc;}
+    action H {H=fc;
+                   Set_Coord();
+                   sprintf(response,"#");
+              }
+    action Hour {hour=fc;}
+    action Min {min=fc;}
+    action Sec {sec=fc;}
+    action Month {month=fc;}
+    action Day{day=fc;}
+    action Year{year=fc;}
+    action Tzone{tzone=fc;}
+    action Dst{
+        dst=fc;
+         SetTime( 100+year, month-1,day,hour,min,sec);
+         sprintf(response,"#");
+        }
+
+	action getcoord {Get_Coord();}
     action traceport {tracedata=!tracedata;}
-    action SETTIME { SetTime(116,10,2,15,33,0);}
-    action gettime {ClockShow();}
+    action SETTIME {// printf ("%d %d %d %d %d %d\r\n",year-100, month,day,hour,min,sec);
+     //SetTime( year, month,day,hour,min,sec);
+     // printf("%d %d %d %d %d %d %d %d %f#",A,B,C,D,E,F,G,H,longitude);
+     sideral(longitude);
+    }
+    action gettime {
+        time_t now = rtc_get_counter_val();
+        struct tm * Time = localtime(&now);
+        sprintf(response,"%c%c%c%c%c%c%c%c#",Time->tm_hour, Time->tm_min,Time->tm_sec,Time->tm_mon,Time->tm_mday,Time->tm_year,2,Time->tm_isdst);
+        resp_size=9;
+    }
+    action printsideral{sideral(-4.20);
+
+    }
+   # action gettime {ClockShow();}
 #definicion sintaxis Nextstar
     Xdigit=[0-9A-F];
 #Syntax
@@ -199,15 +257,15 @@ extern long counter_x,counter_y;*/
 # SLEWING variable and fixed rate commands
     var_rate =(extend @rate_high_byte) (extend@rate_low_byte) ;
     fix_rate =extend @fixed_rate;
-    Vr = 1 ((16 | 17 @alt_axis) (( 6  |  7@inv)  var_rate ) ) 0 0 @set_vrate    ;
-    Fr = 3 ((16 | 17@alt_axis ) ((36 | 37@inv)  fix_rate ) ) 0 0 0 @set_frate;
+    Vr = (3|4) (((16 | 17)@alt_axis) ((( 6  |  7)@inv)  var_rate ) ) 0 0 @set_vrate    ;
+    Fr = 2 (((16 | 17)@alt_axis ) (((36 | 37)@inv)  fix_rate ) ) 0 0 0 @set_frate;
     Slew ='P' (Vr | Fr) ;
 
 #TIME / LOCATION commands
     Get_Loc='w'@getcoord;
-    Set_Loc='W' (0..90) (0..59)(0..59)(0..1)(extend) (0..59)(0..59)(0..1);
+    Set_Loc='W' (0..90)@A (0..59)@B(0..59)@C(0..1)@D(extend)@E (0..59)@F(0..59)@G(0..1)@H;
     Get_Time='h'@gettime;
-    Set_Time='H' (0..23)(0..59)(0..59)(1..12)(1..31)(extend)(extend)(0..1);
+    Set_Time='H' (0..23)@Hour(0..59)@Min(0..59)@Sec(1..12)@Month(1..31)@Day(extend)@Year(extend)@Tzone(0..1)@Dst;
     Loc=Get_Loc | Set_Loc | Get_Time | Set_Time;
 
 #Misc commands.
@@ -222,15 +280,18 @@ extern long counter_x,counter_y;*/
     align_completed='J'@is_aligned;
     goto_progress='L' @is_slewing ;
     cancel_goto="M"@set_cancel;
-    Get_dev_version='P' 0x02 (dev) (0xFE) (0x0{3}) 0x02 @get_dev_version;
+    Get_dev_version='P' (1|2) (dev) (0xFE) (0x0{3}) 0x02 @get_dev_version;
     Misc=Get_version | Get_model | Get_dev_version | echo |align_completed | goto_progress |cancel_goto ;
     Trace='G'@traceport;
     Time= 'X'@SETTIME;
-	main :=  (( Goto_Sync | Get | Track | Slew | Loc  | Misc|Trace|Time)%execute) ;
+    Sideral='S'@printsideral;
+	main :=  (( Goto_Sync | Get | Track | Slew | Loc  | Misc|Trace|Time|Sideral)%execute) ;
 
 
 
 }%%
+
+
 
 void nexstar_init(void)
 {
@@ -256,3 +317,28 @@ void checkfsm(void)
 
 
 
+inline void Get_Coord (void)
+{
+    long temp =fabs(latitude*3600.0);
+    D=H=1;
+    if (latitude<0.0) D=0;
+    A=temp/3600;
+    temp=temp%3600;
+    B=temp/60;
+    C=temp%60;
+    temp =fabs(longitude*3600);
+    if (longitude>0.0) H=0;
+    E=temp/3600;
+    temp=temp%3600;
+    F=temp/60;
+    G=temp%60;
+    sprintf(response,"%c%c%c%c%c%c%c%c#",A,B,C,D,E,F,G,H);
+    resp_size=9;
+}
+inline void Set_Coord(void)
+{
+    longitude=(E*3600.0+F*60.0+G)/3600.0;//RAD_TO_ARCS ;
+    if (H) longitude=-longitude;
+    latitude=(A*3600.0+B*60.0+C)/3600.0;//RAD_TO_ARCS ;
+    if (!D) latitude=-latitude;
+}

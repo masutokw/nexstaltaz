@@ -8,6 +8,10 @@
 #include "usb_cdc.h"
 #include "nexstar.h"
 #include <time.h>
+#include <libopencm3/stm32/rtc.h>
+#include "mount.h"
+
+typedef enum {ALTAZ,EQ,ALT_ALT} mount_t;
 
 c_star st_now,st_target,st_next;
 c_double res_az,res_alt,longitude,latitude;
@@ -16,13 +20,15 @@ long counter_az,counter_alt;
 char trackmode,is_aligned,is_slewing;
 c_double d_az_r,d_alt_r;
 
+mount_t mount_mode;
 struct tm * TimeSet;
-
+void  tak_init(mount_t mount,c_double longd, c_double latd);
 void track(void);
 void nexstar_poll(void);
 void track(void);
 void trace_frame(void);
 void ClockShow(void);
-void SetTime(int y,int m,int d,int h,int min,int sec);
+void SetTime(char y,char m,char d,char h,char min,char sec);
+double sideral(double lon);
 
 #endif // MOUNT_H_INCLUDED

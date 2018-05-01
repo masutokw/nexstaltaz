@@ -1,22 +1,24 @@
 # depslib dependency file v1.0
-1475179658 source:e:\maplecb\timertest\motor.c
+1475676931 source:e:\maplecb\timertest\motor.c
 	"motor.h"
 	<math.h>
 
-1475179438 e:\maplecb\timertest\motor.h
+1475676931 e:\maplecb\timertest\motor.h
 
-1475322820 source:e:\maplecb\timertest\nexstar.rl
+1475654450 source:e:\maplecb\timertest\nexstar.rl
 	<string.h>
 	<stdio.h>
 	"taki.h"
 	"nexstar.h"
+	<time.h>
 
-1475246449 e:\maplecb\timertest\taki.h
+1475664344 e:\maplecb\timertest\taki.h
 	<math.h>
 	<stdio.h>
 
-1475241145 e:\maplecb\timertest\nexstar.h
+1475494251 e:\maplecb\timertest\nexstar.h
 	"motor.h"
+	"mount.h"
 
 1474630931 source:e:\maplecb\timertest\taki.c
 	<math.h>
@@ -329,7 +331,7 @@
 	<libopencm3/cm3/memorymap.h>
 	<libopencm3/cm3/common.h>
 
-1475324101 source:e:\maplecb\timertest\main.c
+1475595164 source:e:\maplecb\timertest\main.c
 	<libopencm3/stm32/rcc.h>
 	<libopencm3/stm32/gpio.h>
 	<libopencm3/stm32/timer.h>
@@ -338,6 +340,7 @@
 	<libopencm3/cm3/systick.h>
 	<libopencm3/cm3/scb.h>
 	<libopencm3/stm32/rtc.h>
+	<time.h>
 	"taki.h"
 	"motor.h"
 	"nexstar.h"
@@ -450,8 +453,14 @@
 1473752040 e:\stm32\libopencm3-master\include\libopencm3\stm32\l1\rtc.h
 	<libopencm3/stm32/common/rtc_common_l1f024.h>
 
-1475248232 e:\maplecb\timertest\mount.h
+1475677020 e:\maplecb\timertest\mount.h
 	"taki.h"
 	"usb_cdc.h"
 	"nexstar.h"
+	<time.h>
+	<libopencm3/stm32/rtc.h>
+	"mount.h"
+
+1475679436 source:e:\maplecb\timertest\mount.c
+	"mount.h"
 

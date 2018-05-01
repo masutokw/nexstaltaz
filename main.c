@@ -1,33 +1,32 @@
-#include <libopencm3/stm32/rcc.h>
+
+#define BEGIN_DECLS
+#define END_DECLS
+
+#include <stdint.h>
+#include <stdio.h>
+
+
+
+#include <stdlib.h>
+
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/cm3/scb.h>
-#include <libopencm3/stm32/rtc.h>
+
+#include <stdlib.h>
 #include <time.h>
-//#include <libopencm3/stm32/pwr.h>
+#include <time.h>
 #include "taki.h"
 #include "motor.h"
 #include "nexstar.h"
 #include "usb_cdc.h"
 #include "mount.h"
 
-/*extern char rx_str[128];
-extern int rx_str_len;
-extern char response[40];
-extern int resp_size;*/
-//extern void nexstar_cmd();
-//extern void nexstar_init();
-//extern void cdcacm_init();
-//extern void cdcacm_print_buff();
-//extern void speed_x_a(float target_speed);
-//extern void speed_y_a(float target_speed);
-/*extern unsigned int ticks_x,ticks_y;
-extern long counter_x,counter_y;
-extern double res_x,res_y,speed_x;
-extern int dir_x,dir_y;*/
+
+
 int sync_cmd=0;
 uint16_t compare_time2,compare_time3;
 uint16_t new_time2,new_time3;
@@ -38,6 +37,21 @@ uint64_t Sys_Ticks;
 static void clock_setup(void)
 {
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
+  // rtc_auto_awake(LSE, 0x7fff);
+  rtc_auto_awake(RCC_LSE, 0x7fff);
+
+}
+void ClockShow(void)
+{
+
+    time_t now = rtc_get_counter_val();
+    struct tm * Time = localtime(&now);
+    printf("%02i/%02i/%i\n", Time->tm_mday, 1+Time->tm_mon,1900 + Time->tm_year);
+
+   printf("%02i:%02i:%02i",Time->tm_hour, Time->tm_min,Time->tm_sec);
+   // filter_use=(int) (difftime(now,Filter_rawtime)/86400);
+
+
 }
 
 static void gpio_setup(void)
@@ -179,7 +193,7 @@ void sys_tick_handler(void)
 }
 
 void tim2_isr(void)
-{
+{   gpio_set(AZ_PORT,AZ_PIN);
     if (timer_get_flag(TIM2, TIM_SR_CC1IF))
     {
 
@@ -197,11 +211,11 @@ void tim2_isr(void)
         timer_set_oc_value(TIM2, TIM_OC1, new_time2);
         counter_x+=dir_x;
         //do step
-        gpio_toggle(AZ_PORT,AZ_PIN);
+        gpio_clear(AZ_PORT,AZ_PIN);
     }
 }
 void tim3_isr(void)
-{
+{    gpio_clear(ALT_PORT,ALT_PIN);
     if (timer_get_flag(TIM3, TIM_SR_CC1IF))
     {
 
@@ -222,43 +236,12 @@ void tim3_isr(void)
         timer_set_oc_value(TIM3, TIM_OC1, new_time3);
         counter_y+=dir_y;
         /* do_step */
-        gpio_toggle(ALT_PORT,ALT_PIN);
+        gpio_set(ALT_PORT,ALT_PIN);
 
     }
 }
 
-void takset(void)
-{
-    reset_transforms(0.0, 0.0, 0.0);
-    set_star(&st_target, 0.0, 90.0, 0.0, 36.80, 0);
-    init_star(1, &st_target);
-    set_star(&st_target, 0.00, 36.80, 180.00, 90.00, 0);
-    init_star(2, &st_target);
-    compute_trasform();
-    set_star(&st_target, 178.0, 10.0, 0.0, 0.0,0);
-    set_star(&st_next,178.0,10.0, 0.0, 0.0,0);
-    to_alt_az(&st_target);
 
-
-}
-void gotoxy(int x,int y)
-{
-    printf("%c[%d;%df",0x1B,y,x);
-}
-
-/*Parse nexstar´s received string ,fired by USB RX interrupt callback  function
-void nexstar_poll(void)
-{
-    nexstar_init();
-    nexstar_cmd(rx_str,rx_str_len);
-    rx_str_len=0;
-    cdcacm_print_buff(response,resp_size);
-}*/
-
-
-
-
-//}
 
 int main(void)
 {
@@ -280,7 +263,8 @@ int main(void)
     systick_setup();
     tim_setup();
     tim_setup3();
-    takset();
+   // tak_init(ALTAZ);
+    tak_init(EQ,4.20,36.72);
     motor_init(0,0,0.3,0.3,1000.0,1000.0);
     st_target.timer_count=( Sys_Ticks/1000.0);
     to_alt_az(&st_target);
@@ -288,6 +272,7 @@ int main(void)
     counter_y=st_target.alt*180.0*3600.0/(M_PI*res_y);
     rtc_auto_awake(RCC_HSE, 0xf424);
     //
+   // Set_Coord();
     while (1)
     {
         if (rx_str_len) nexstar_poll();//procces nexstar commnad if any
