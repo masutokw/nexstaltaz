@@ -37,8 +37,8 @@ uint64_t Sys_Ticks;
 static void clock_setup(void)
 {
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
-  // rtc_auto_awake(LSE, 0x7fff);
-  rtc_auto_awake(RCC_LSE, 0x7fff);
+    // rtc_auto_awake(LSE, 0x7fff);
+    rtc_auto_awake(RCC_LSE, 0x7fff);
 
 }
 void ClockShow(void)
@@ -48,8 +48,8 @@ void ClockShow(void)
     struct tm * Time = localtime(&now);
     printf("%02i/%02i/%i\n", Time->tm_mday, 1+Time->tm_mon,1900 + Time->tm_year);
 
-   printf("%02i:%02i:%02i",Time->tm_hour, Time->tm_min,Time->tm_sec);
-   // filter_use=(int) (difftime(now,Filter_rawtime)/86400);
+    printf("%02i:%02i:%02i",Time->tm_hour, Time->tm_min,Time->tm_sec);
+    // filter_use=(int) (difftime(now,Filter_rawtime)/86400);
 
 
 }
@@ -58,12 +58,20 @@ static void gpio_setup(void)
 {
     /* Enable GPIOC clock. */
     rcc_periph_clock_enable(RCC_GPIOC);
+    rcc_periph_clock_enable(RCC_GPIOA);
 
     /* Set GPIO13 GPIO14  (in GPIO port C) to 'output push-pull'. */
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
-                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO14|GPIO13);
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO15|GPIO14|GPIO13);
 
     gpio_clear(GPIOC, GPIO13);
+    gpio_clear(GPIOC, GPIO14);
+    gpio_clear(GPIOC, GPIO15);
+    gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
+                  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
+    gpio_clear(GPIOA, GPIO0);
+
+
 }
 
 static void tim_setup(void)
@@ -193,9 +201,12 @@ void sys_tick_handler(void)
 }
 
 void tim2_isr(void)
-{   gpio_set(AZ_PORT,AZ_PIN);
+{
+    gpio_set(AZ_PORT,AZ_PIN);
     if (timer_get_flag(TIM2, TIM_SR_CC1IF))
     {
+        if (dir_x>0) gpio_clear( AZ_DIR_PIN_PORT,AZ_DIR_PIN);
+        else gpio_set(AZ_DIR_PIN_PORT,AZ_DIR_PIN);
 
         /* Clear compare interrupt flag. */
         timer_clear_flag(TIM2, TIM_SR_CC1IF);
@@ -215,12 +226,15 @@ void tim2_isr(void)
     }
 }
 void tim3_isr(void)
-{    gpio_clear(ALT_PORT,ALT_PIN);
+{
+    gpio_clear(ALT_PORT,ALT_PIN);
     if (timer_get_flag(TIM3, TIM_SR_CC1IF))
     {
-
+        if (dir_y>0) gpio_clear( ALT_PORT,ALT_DIR_PIN);
+        else gpio_set( ALT_PORT,ALT_DIR_PIN);
         /* Clear compare interrupt flag. */
         timer_clear_flag(TIM3, TIM_SR_CC1IF);
+
 
         /*
          * Get current timer value to calculate next
@@ -229,7 +243,6 @@ void tim3_isr(void)
         compare_time3 = timer_get_counter(TIM3);
 
         /* Calculate and set the next compare value. */
-
 
         new_time3 = compare_time3 + ticks_y;
 
@@ -263,19 +276,19 @@ int main(void)
     systick_setup();
     tim_setup();
     tim_setup3();
-   // tak_init(ALTAZ);
-    tak_init(EQ,4.20,36.72);
+
+    tak_init(ALTAZ,-4.20,36.72);
+    //  tak_init(EQ,-4.20,36.72);
     motor_init(0,0,0.3,0.3,1000.0,1000.0);
     st_target.timer_count=( Sys_Ticks/1000.0);
     to_alt_az(&st_target);
     counter_x=st_target.az*RAD_TO_ARCS/res_x;
     counter_y=st_target.alt*180.0*3600.0/(M_PI*res_y);
     rtc_auto_awake(RCC_HSE, 0xf424);
-    //
-   // Set_Coord();
+
     while (1)
     {
-        if (rx_str_len) nexstar_poll();//procces nexstar commnad if any
+        if (rx_str_len) nexstar_poll();//process nexstar commnad if any
         if ((Sys_Ticks%100)==0) track();//track loop
     }
     return 0;

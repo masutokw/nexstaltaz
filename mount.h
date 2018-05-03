@@ -3,7 +3,10 @@
 #define ALT_PORT GPIOC
 #define AZ_PORT GPIOC
 #define ALT_PIN GPIO14
-#define AZ_PIN GPIO13
+#define ALT_DIR_PIN GPIO13
+#define AZ_PIN GPIO15
+#define AZ_DIR_PIN GPIO0
+#define AZ_DIR_PIN_PORT GPIOA
 #include "taki.h"
 #include "usb_cdc.h"
 #include "nexstar.h"
@@ -17,7 +20,8 @@ c_star st_now,st_target,st_next;
 c_double res_az,res_alt,longitude,latitude;
 int elevation,pressure;
 long counter_az,counter_alt;
-char trackmode,is_aligned,is_slewing;
+char trackmode,is_aligned,is_slewing,tracking;
+
 c_double d_az_r,d_alt_r;
 
 mount_t mount_mode;

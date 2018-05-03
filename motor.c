@@ -48,7 +48,7 @@ void speed_x_a(float target_speed)
             speed_x=speed_x-accel_x;
     }
 
-    ticks_x=round((100000.0*res_x)/fabs(speed_x));
+    ticks_x=round((TIMER_MULTIPLIER*res_x)/fabs(speed_x));
     dir_x=sign(speed_x);
 
 

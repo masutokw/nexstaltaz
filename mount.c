@@ -65,7 +65,8 @@ void track(void)
     to_equatorial(&st_current);
     //if trace print computed   stuff  to USB output stream
     if (tracedata) trace_frame();
-    if (trackmode)
+  //  if (trackmode)
+  if (tracking)
     {
         //compute next alt/az mount values  for target next lap second
         st_target.timer_count+= 1.0;
@@ -79,13 +80,18 @@ void track(void)
         // Compute and set timer intervals for stepper  rates
         speed_x_a(d_az_r);
         speed_y_a(d_alt_r);
-        is_slewing='0';
+       // is_slewing='0';
     }
     else
-    {
-        speed_x_a(az_frate);
+    {   speed_x_a(az_frate);
         speed_y_a(alt_frate);
-        is_slewing='1';
+        if (trackmode==1) {
+                tracking=(speed_y==0.0)&&(speed_x==0.0);
+                  st_target.ra=st_current.ra;
+                  st_target.dec=st_current.dec;}
+
+
+
     }
 
 }
